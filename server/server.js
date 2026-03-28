@@ -9,9 +9,6 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Serve static compiled frontend files (Option A)
-app.use(express.static(path.join(__dirname, '../client/dist')));
-
 app.post('/evaluate', async (req, res) => {
   try {
     const { graph, data } = req.body;
@@ -25,11 +22,6 @@ app.post('/evaluate', async (req, res) => {
     console.error('Evaluation Error:', err);
     res.status(500).json({ error: err.message || 'Internal evaluation error' });
   }
-});
-
-// Fallback all other routes to 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
 const PORT = typeof process !== 'undefined' && process.env.PORT ? process.env.PORT : 3000;
