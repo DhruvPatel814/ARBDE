@@ -1,0 +1,17 @@
+{
+  "name": "arbde",
+  "version": "1.0.0",
+  "description": "Adaptive Rule-Based Decision Engine",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "build": "npm run build --prefix client",
+    "postinstall": "npm install --prefix client && npm install --prefix server",
+    "dev": "npm run dev --prefix client & node server/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "",
+  "license": "ISC"
+}
