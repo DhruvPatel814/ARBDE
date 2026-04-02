@@ -24,6 +24,16 @@ app.post('/evaluate', async (req, res) => {
   }
 });
 
+// Serve static files from the React app
+const clientBuildPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientBuildPath));
+
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
+});
+
 const PORT = typeof process !== 'undefined' && process.env.PORT ? process.env.PORT : 3000;
 app.listen(PORT, () => {
   console.log(`Node Rule Engine Server running on port ${PORT}`);

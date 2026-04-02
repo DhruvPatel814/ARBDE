@@ -1,13 +1,14 @@
 import React from 'react';
 import useStore from '../store/useStore';
 import Editor from '@monaco-editor/react';
-import { Play, Copy, Filter } from 'lucide-react';
+import { Play, Filter, AlignLeft } from 'lucide-react';
 
 export default function BottomPanel() {
-  const { nodes, edges, requestJson, responseJson, setRequestJson, setResponseJson } = useStore();
+  const { nodes, edges, requestJson, responseJson, setRequestJson, setResponseJson, logs, setLogs } = useStore();
 
   const handleRun = async () => {
     try {
+      setLogs(['Execution started...']);
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const response = await fetch(`${baseUrl}/evaluate`, {
         method: 'POST',
@@ -18,9 +19,17 @@ export default function BottomPanel() {
         }),
       });
       const result = await response.json();
-      setResponseJson(JSON.stringify(result, null, 2));
+      
+      if (result.error) {
+         setResponseJson(JSON.stringify({ error: result.error }, null, 2));
+         setLogs(prev => [...prev, `[Error] ${result.error}`]);
+      } else {
+         setResponseJson(JSON.stringify(result.output || result, null, 2));
+         if (result.logs) setLogs(result.logs);
+      }
     } catch (err) {
       setResponseJson(JSON.stringify({ error: err.message }, null, 2));
+      setLogs(prev => [...prev, `[Exception] ${err.message}`]);
     }
   };
 
@@ -48,25 +57,31 @@ export default function BottomPanel() {
               value={requestJson}
               onChange={(value) => setRequestJson(value)}
               theme="light"
-              options={{
-                minimap: { enabled: false },
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                fontSize: 13,
-                fontFamily: "'JetBrains Mono', 'Courier New', monospace",
-                wordWrap: 'on'
-              }}
+              options={{ minimap: { enabled: false }, lineNumbers: 'on', scrollBeyondLastLine: false, fontSize: 13, fontFamily: "'JetBrains Mono', 'Courier New', monospace", wordWrap: 'on' }}
             />
           </div>
         </div>
 
-        {/* Nodes/Graph info - mock for now, Zen has it but we just use two big panels for MVP */}
+        {/* Logs Panel */}
+        <div className="flex-1 flex flex-col border-r border-slate-200">
+          <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex justify-between items-center h-10">
+            <span className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <AlignLeft size={14} className="text-slate-400" /> Logs
+            </span>
+          </div>
+          <div className="flex-1 p-3 bg-[#1e1e1e] text-green-400 font-mono text-[11px] overflow-y-auto w-full leading-5">
+             {logs && logs.length > 0 ? logs.map((log, i) => (
+                <div key={i}>{log}</div>
+             )) : (
+                <div className="text-slate-500 italic">No execution logs yet. Run the flow to see output.</div>
+             )}
+          </div>
+        </div>
         
         {/* Response Panel */}
         <div className="flex-1 flex flex-col">
           <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex justify-between items-center h-10">
             <span className="text-sm font-semibold text-slate-700">Response</span>
-            <span className="cursor-pointer text-slate-400 hover:text-slate-600">×</span>
           </div>
           <div className="flex-1 p-1 bg-white">
              <Editor
@@ -74,14 +89,7 @@ export default function BottomPanel() {
               defaultLanguage="json"
               value={responseJson}
               theme="light"
-              options={{
-                readOnly: true,
-                minimap: { enabled: false },
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                fontSize: 13,
-                fontFamily: "'JetBrains Mono', 'Courier New', monospace"
-              }}
+              options={{ readOnly: true, minimap: { enabled: false }, lineNumbers: 'on', scrollBeyondLastLine: false, fontSize: 13, fontFamily: "'JetBrains Mono', 'Courier New', monospace" }}
             />
           </div>
         </div>
