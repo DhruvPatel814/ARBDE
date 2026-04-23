@@ -24,7 +24,7 @@ const nodeTypes = {
 };
 
 function Graph() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode } = useStore();
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, visitedEdges } = useStore();
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -83,11 +83,24 @@ function Graph() {
     onConnect(connection);
   }, [nodes, onConnect]);
 
+  const renderedEdges = edges.map((e) => {
+    const isVisited = visitedEdges?.includes(e.id);
+    return {
+      ...e,
+      style: {
+        ...e.style,
+        stroke: isVisited ? '#22c55e' : '#cbd5e1', // Green for visited, light gray for skipped
+        strokeWidth: isVisited ? 3 : 1.5,
+      },
+      animated: isVisited,
+    };
+  });
+
   return (
     <div className="flex-1 h-full w-full" ref={reactFlowWrapper}>
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={renderedEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={handleConnect}

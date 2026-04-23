@@ -27,6 +27,13 @@ const useStore = create(
       requestJson: '{\n  "company": {\n    "turnover": 10000000,\n    "type": "LLC",\n    "country": "US"\n  }\n}',
       responseJson: '',
       logs: [],
+      // Execution Tracing State
+      executingNodeId: null,
+      nodeResults: {},
+      nodeErrors: {},
+      visitedNodes: [],
+      visitedEdges: [],
+
       onNodesChange: (changes) => {
         set({
           nodes: applyNodeChanges(changes, get().nodes),
@@ -100,6 +107,11 @@ const useStore = create(
           requestJson: '{\n  "company": {\n    "turnover": 10000000,\n    "type": "LLC",\n    "country": "US"\n  }\n}',
           responseJson: '',
           logs: [],
+          executingNodeId: null,
+          nodeResults: {},
+          nodeErrors: {},
+          visitedNodes: [],
+          visitedEdges: [],
         });
       },
       // Tab management is replacing Modal
@@ -136,6 +148,27 @@ const useStore = create(
       setRequestJson: (val) => set({ requestJson: val }),
       setResponseJson: (val) => set({ responseJson: val }),
       setLogs: (val) => set({ logs: val }),
+      
+      // Execution Trace Actions
+      setExecutingNodeId: (id) => set({ executingNodeId: id }),
+      setNodeResult: (id, result) => set((state) => ({
+        nodeResults: { ...state.nodeResults, [id]: result }
+      })),
+      setNodeError: (id, error) => set((state) => ({
+        nodeErrors: { ...state.nodeErrors, [id]: error }
+      })),
+      addVisitedNode: (id) => set((state) => ({ visitedNodes: [...state.visitedNodes, id] })),
+      addVisitedEdge: (id) => set((state) => ({ visitedEdges: [...state.visitedEdges, id] })),
+      clearExecutionState: () => set({
+        executingNodeId: null,
+        nodeResults: {},
+        nodeErrors: {},
+        visitedNodes: [],
+        visitedEdges: [],
+        logs: [],
+        responseJson: ''
+      }),
+
       loadCompanyTemplate: () => {
         set({
           nodes: [
@@ -163,21 +196,39 @@ const useStore = create(
         set({
           nodes: [
             { id: 'request-1', type: 'request', position: { x: 50, y: 150 }, data: { label: 'Request' } },
-            { id: 'function-1', type: 'function', position: { x: 250, y: 150 }, data: { label: 'Calc Score', functionBody: 'return { score: input.loan.amount > 50000 ? 50 : 80 };' } },
-            { id: 'decision-1', type: 'decision', position: { x: 500, y: 150 }, data: { label: 'Score > 60', condition: 'input.score > 60' } },
-            { id: 'expression-1', type: 'expression', position: { x: 750, y: 50 }, data: { label: 'Approve', expression: '{ status: "Approved" }' } },
-            { id: 'expression-2', type: 'expression', position: { x: 750, y: 250 }, data: { label: 'Reject', expression: '{ status: "Rejected" }' } },
-            { id: 'response-1', type: 'response', position: { x: 1000, y: 150 }, data: { label: 'Response' } }
+            { id: 'decision-1', type: 'decision', position: { x: 300, y: 150 }, data: { label: 'High Income & Credit', condition: 'input.loan.income >= 50000 && input.creditScore >= 700' } },
+            { id: 'decision-2', type: 'decision', position: { x: 600, y: 250 }, data: { label: 'Medium Income/Credit', condition: 'input.loan.income >= 30000 && input.creditScore >= 600' } },
+            { id: 'expression-approve', type: 'expression', position: { x: 600, y: 50 }, data: { label: 'Approve', expression: '{ status: "Approved" }' } },
+            { id: 'expression-review', type: 'expression', position: { x: 900, y: 150 }, data: { label: 'Review', expression: '{ status: "Review" }' } },
+            { id: 'expression-reject', type: 'expression', position: { x: 900, y: 350 }, data: { label: 'Reject', expression: '{ status: "Rejected" }' } },
+            { id: 'response-1', type: 'response', position: { x: 1200, y: 150 }, data: { label: 'Response' } }
           ],
           edges: [
-            { id: 'e-req-func', source: 'request-1', target: 'function-1' },
-            { id: 'e-func-dec', source: 'function-1', target: 'decision-1' },
-            { id: 'e-dec-exp1', source: 'decision-1', target: 'expression-1', sourceHandle: 'true' },
-            { id: 'e-dec-exp2', source: 'decision-1', target: 'expression-2', sourceHandle: 'false' },
-            { id: 'e-exp1-res', source: 'expression-1', target: 'response-1' },
-            { id: 'e-exp2-res', source: 'expression-2', target: 'response-1' }
+            { id: 'e-req-dec1', source: 'request-1', target: 'decision-1' },
+            { id: 'e-dec1-app', source: 'decision-1', target: 'expression-approve', sourceHandle: 'true' },
+            { id: 'e-dec1-dec2', source: 'decision-1', target: 'decision-2', sourceHandle: 'false' },
+            { id: 'e-dec2-rev', source: 'decision-2', target: 'expression-review', sourceHandle: 'true' },
+            { id: 'e-dec2-rej', source: 'decision-2', target: 'expression-reject', sourceHandle: 'false' },
+            { id: 'e-app-res', source: 'expression-approve', target: 'response-1' },
+            { id: 'e-rev-res', source: 'expression-review', target: 'response-1' },
+            { id: 'e-rej-res', source: 'expression-reject', target: 'response-1' }
           ],
-          requestJson: '{\n  "loan": {\n    "amount": 75000\n  }\n}',
+          requestJson: '{\n  "loan": {\n    "amount": 75000,\n    "income": 60000\n  },\n  "creditScore": 720,\n  "existingLoans": 1\n}',
+          responseJson: '',
+          logs: [],
+          activeTab: 'graph',
+          openTabs: [{ id: 'graph', title: 'Graph' }],
+          visitedNodes: [],
+          visitedEdges: [],
+          nodeResults: {},
+          nodeErrors: {}
+        });
+      },
+      loadTemplateData: (data) => {
+        set({
+          nodes: data.nodes || [],
+          edges: data.edges || [],
+          requestJson: data.request || '',
           responseJson: '',
           logs: [],
           activeTab: 'graph',

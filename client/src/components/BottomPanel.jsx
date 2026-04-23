@@ -1,37 +1,37 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
 import Editor from '@monaco-editor/react';
 import { Play, Filter, AlignLeft } from 'lucide-react';
+import { evaluateGraphFrontend } from '../utils/frontendEvaluator';
 
 export default function BottomPanel() {
-  const { nodes, edges, requestJson, responseJson, setRequestJson, setResponseJson, logs, setLogs } = useStore();
+  const { nodes, edges, requestJson, responseJson, setRequestJson, setResponseJson, logs, setLogs, clearExecutionState } = useStore();
+  const debounceTimeout = useRef(null);
 
-  const handleRun = async () => {
+  const handleRun = async (isAutoRun = false) => {
     try {
+      clearExecutionState();
+      const initialData = JSON.parse(requestJson);
       setLogs(['Execution started...']);
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${baseUrl}/evaluate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          graph: { nodes, edges },
-          data: JSON.parse(requestJson)
-        }),
-      });
-      const result = await response.json();
       
-      if (result.error) {
-         setResponseJson(JSON.stringify({ error: result.error }, null, 2));
-         setLogs(prev => [...prev, `[Error] ${result.error}`]);
-      } else {
-         setResponseJson(JSON.stringify(result.output || result, null, 2));
-         if (result.logs) setLogs(result.logs);
-      }
+      const result = await evaluateGraphFrontend({ nodes, edges }, initialData, { isAutoRun });
+      
+      setResponseJson(JSON.stringify(result.output || result, null, 2));
     } catch (err) {
       setResponseJson(JSON.stringify({ error: err.message }, null, 2));
       setLogs(prev => [...prev, `[Exception] ${err.message}`]);
     }
   };
+
+  useEffect(() => {
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      if (nodes.length > 0 && requestJson.trim() !== '') {
+        handleRun(true);
+      }
+    }, 600);
+    return () => clearTimeout(debounceTimeout.current);
+  }, [nodes, edges, requestJson]);
 
   return (
     <div className="h-64 border-t border-slate-200 bg-white flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
@@ -40,7 +40,7 @@ export default function BottomPanel() {
         <div className="flex-1 flex flex-col border-r border-slate-200">
           <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex justify-between items-center h-10">
             <span className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              Request (json5)
+              Input Data
               <Filter size={14} className="text-slate-400" />
             </span>
             <button
@@ -81,7 +81,7 @@ export default function BottomPanel() {
         {/* Response Panel */}
         <div className="flex-1 flex flex-col">
           <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex justify-between items-center h-10">
-            <span className="text-sm font-semibold text-slate-700">Response</span>
+            <span className="text-sm font-semibold text-slate-700">Decision Output</span>
           </div>
           <div className="flex-1 p-1 bg-white">
              <Editor

@@ -78,25 +78,6 @@ export default function Sidebar() {
           );
         })}
       </div>
-      
-      {/* Templates Section */}
-      <div className="w-full px-4 pt-4 border-t border-gray-200 mt-auto">
-         <h2 className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Templates</h2>
-         <div className="flex flex-col gap-2">
-           <button 
-             onClick={() => { if (confirm('Overwrite current flow?')) loadCompanyTemplate(); }}
-             className="text-left flex items-center gap-2 text-xs text-slate-700 bg-white border border-slate-200 p-2 rounded hover:bg-blue-50 hover:border-blue-200 transition-colors">
-             <FileText size={14} className="text-blue-500" />
-             Load Sample: Company Classification
-           </button>
-           <button 
-             onClick={() => { if (confirm('Overwrite current flow?')) loadLoanTemplate(); }}
-             className="text-left flex items-center gap-2 text-xs text-slate-700 bg-white border border-slate-200 p-2 rounded hover:bg-emerald-50 hover:border-emerald-200 transition-colors">
-             <FileText size={14} className="text-emerald-500" />
-             Load Sample: Loan Approval
-           </button>
-         </div>
-      </div>
     </div>
   );
 }

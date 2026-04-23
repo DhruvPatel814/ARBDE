@@ -5,6 +5,7 @@ import BottomPanel from './components/BottomPanel';
 import DecisionTableEditor from './components/DecisionTableEditor';
 import useStore from './store/useStore';
 import { Network, Table, X } from 'lucide-react';
+import TemplateManager from './components/TemplateManager';
 
 function App() {
   const { openTabs, activeTab, setActiveTab, closeTab } = useStore();
@@ -12,9 +13,26 @@ function App() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-50 text-slate-800 font-sans">
       
+      {/* Header */}
+      <div className="bg-slate-800 text-white px-4 py-2 flex items-center justify-between shadow-sm z-20">
+        <h1 className="font-bold text-md tracking-wide flex items-center gap-2">
+          <Network size={18} className="text-blue-400" />
+          ARBDE – Visual Rule-Based Decision Engine
+        </h1>
+        <div className="flex items-center gap-2 text-xs font-semibold bg-slate-900/50 px-3 py-1.5 rounded-full border border-slate-700">
+          <span className="text-purple-300">Input Data</span>
+          <span className="text-slate-500">→</span>
+          <span className="text-blue-400">Rule Engine Execution</span>
+          <span className="text-slate-500">→</span>
+          <span className="text-green-400">Decision Output</span>
+        </div>
+      </div>
+
       {/* Top Tab Bar */}
-      <div className="flex bg-slate-100 border-b border-slate-200 h-10 px-2 items-end">
-        {openTabs.map(tab => {
+      <div className="flex bg-slate-100 border-b border-slate-200 h-10 px-2 items-end justify-between z-10">
+        <div className="flex pt-1 flex-1">
+          {openTabs.map(tab => {
+          if (tab.id === 'graph') return null;
           const isActive = activeTab === tab.id;
           return (
             <div 
@@ -36,6 +54,8 @@ function App() {
             </div>
           );
         })}
+        </div>
+        <TemplateManager />
       </div>
 
       {/* Main Content Area */}
